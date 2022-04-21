@@ -15,7 +15,6 @@
 		<script>
 			var group;
 			var container;
-			var particlesData = [];
 			var camera, scene, renderer, obc;
 			var positions, colors;
 			var particles;
@@ -23,6 +22,7 @@
 			var particlePositions;
 			var linesMesh;
 
+			var particlesData = [];
 			var maxParticleCount = 1000;
 			var particleCount = 500;
 			var r = 800;
@@ -37,60 +37,7 @@
 				particleCount: 500
 			};
 
-			function init() {
-				container = document.getElementById( 'container' );
-
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 4000 );
-				camera.position.z = 1750;
-
-        //obc = new THREE.OrbitControls();
-
-				scene = new THREE.Scene();
-
-
-				group = new THREE.Group();
-				scene.add( group );
-
-				var helper = new THREE.BoxHelper( new THREE.Mesh( new THREE.BoxGeometry( r, r, r ) ) );
-				helper.material.color.setHex( 0x101010 );
-				helper.material.blending = THREE.AdditiveBlending;
-				helper.material.transparent = true;
-				group.add( helper );
-
-				var segments = maxParticleCount * maxParticleCount;
-
-				positions = new Float32Array( segments * 3 );
-				colors = new Float32Array( segments * 3 );
-
-				var pMaterial = new THREE.PointsMaterial( {
-					color: 0xFFFFFF,
-					size: 3,
-					blending: THREE.AdditiveBlending,
-					transparent: true,
-					sizeAttenuation: false
-				} );
-
-				particles = new THREE.BufferGeometry();
-				particlePositions = new Float32Array( maxParticleCount * 3 );
-
-				for ( let i = 0; i < maxParticleCount; i ++ ) {
-
-					var x = Math.random() * r - r / 2;
-					var y = Math.random() * r - r / 2;
-					var z = Math.random() * r - r / 2;
-
-					particlePositions[ i * 3 ] = x;
-					particlePositions[ i * 3 + 1 ] = y;
-					particlePositions[ i * 3 + 2 ] = z;
-
-
-					particlesData.push( {
-						velocity: new THREE.Vector3( - 1 + Math.random() * 2, - 1 + Math.random() * 2, - 1 + Math.random() * 2 ),
-						numConnections: 0
-					} );
-
-				}
-
+			function init(container, scene, group, camera, helper, segments, positions, colors, pMaterial, particles, particlePositions) {
 				particles.setDrawRange( 0, particleCount );
 				particles.setAttribute( 'position', new THREE.BufferAttribute( particlePositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
 
@@ -122,6 +69,7 @@
 				renderer.outputEncoding = THREE.sRGBEncoding;
 
 				container.appendChild( renderer.domElement );
+				renderer.render( scene, camera );
 			}
 
 			function animate() {
@@ -203,7 +151,6 @@
 
 				pointCloud.geometry.attributes.position.needsUpdate = true;
 
-				requestAnimationFrame( animate );
 				render();
 
 			}
@@ -213,12 +160,9 @@
 				var time = Date.now() * 0.001;
 
 				group.rotation.y = time * 0.5;
-				renderer.render( scene, camera );
+
 
 			}
-
-			init();
-			animate();
 		</script>
 <py-script>
 from pyodide import create_proxy, to_js
@@ -228,7 +172,58 @@ from js import THREE
 from js import performance
 from pyodide import to_js
 from js import Object, Float32Array
+from js import init, animate, render
+from js import group, container, camera, scene, renderer, obc, positions, colors, particles, pointCloud, particlePositions, linesMesh
 
+particlesData = [];
+maxParticleCount = 1000;
+particleCount = 500;
+r = 800;
+rHalf = r / 2;
+
+container = document.getElementById( 'container' );
+
+camera = THREE.PerspectiveCamera.new( 45, window.innerWidth / window.innerHeight, 1, 4000 );
+camera.position.z = 1750;
+
+scene = THREE.Scene.new();
+group = THREE.Group.new();
+
+scene.add( group );
+
+helper = THREE.BoxHelper.new( THREE.Mesh.new( THREE.BoxGeometry.new( r, r, r ) ) );
+helper.material.color.setHex( 0x101010 );
+helper.material.blending = THREE.AdditiveBlending;
+helper.material.transparent = True;
+group.add( helper );
+
+segments = maxParticleCount * maxParticleCount;
+
+positions = Float32Array.new( segments * 3 );
+colors = Float32Array.new( segments * 3 );
+
+points_perms = {"color": 0xFFFFFF,"size": 3,"blending": THREE.AdditiveBlending,"transparent": True,"sizeAttenuation": False}
+points_perms = Object.fromEntries(to_js(points_perms))
+
+pMaterial = THREE.PointsMaterial.new(points_perms);
+
+particles = THREE.BufferGeometry.new();
+particlePositions = Float32Array.new( maxParticleCount * 3 );
+
+i = 0
+while i < len(particlePositions):
+	x = Math.random() * r - r / 2;
+	y = Math.random() * r - r / 2;
+	z = Math.random() * r - r / 2;
+
+	particlePositions[ i * 3 ] = x;
+	particlePositions[ i * 3 + 1 ] = y;
+	particlePositions[ i * 3 + 2 ] = z;
+
+	particlesData.append( {"velocity": THREE.Vector3.new( - 1 + Math.random() * 2, - 1 + Math.random() * 2, - 1 + Math.random() * 2 ), "numConnections": 0} );
+	i += 1
+
+init(container, scene, group, camera, helper, segments, positions, colors, pMaterial, particles, particlePositions)
 </py-script>
 	</body>
 </html>
