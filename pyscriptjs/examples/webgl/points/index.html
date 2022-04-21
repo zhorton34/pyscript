@@ -13,173 +13,35 @@
     <script defer src="/build/pyscript.js"></script>
     <link rel="stylesheet" href="/build/pyscript.css" />
 		<script>
-			var group;
-			var container;
-			var camera, scene, renderer, obc;
-			var positions, colors;
-			var particles;
-			var pointCloud;
-			var particlePositions;
-			var linesMesh;
 
-			var particlesData = [];
-			var maxParticleCount = 1000;
-			var particleCount = 500;
-			var r = 800;
-			var rHalf = r / 2;
-
-			var effectController = {
-				showDots: true,
-				showLines: true,
-				minDistance: 150,
-				limitConnections: false,
-				maxConnections: 20,
-				particleCount: 500
-			};
-
-			function init(container, scene, group, camera, helper, segments, positions, colors, pMaterial, particles, particlePositions) {
-				particles.setDrawRange( 0, particleCount );
-				particles.setAttribute( 'position', new THREE.BufferAttribute( particlePositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
-
-
-				pointCloud = new THREE.Points( particles, pMaterial );
-				group.add( pointCloud );
-
-				var geometry = new THREE.BufferGeometry();
-
-				geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
-				geometry.setAttribute( 'color', new THREE.BufferAttribute( colors, 3 ).setUsage( THREE.DynamicDrawUsage ) );
-
-				geometry.computeBoundingSphere();
-
-				geometry.setDrawRange( 0, 0 );
-
-				var material = new THREE.LineBasicMaterial( {
-					vertexColors: true,
-					blending: THREE.AdditiveBlending,
-					transparent: true
-				} );
-
-				linesMesh = new THREE.LineSegments( geometry, material );
-				group.add( linesMesh );
-
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.outputEncoding = THREE.sRGBEncoding;
-
-				container.appendChild( renderer.domElement );
-				renderer.render( scene, camera );
-			}
-
-			function animate() {
-
-				let vertexpos = 0;
-				let colorpos = 0;
-				let numConnected = 0;
-
-				for ( let i = 0; i < particleCount; i ++ )
-					particlesData[ i ].numConnections = 0;
-
-				for ( let i = 0; i < particleCount; i ++ ) {
-
-					var particleData = particlesData[ i ];
-
-					particlePositions[ i * 3 ] += particleData.velocity.x;
-					particlePositions[ i * 3 + 1 ] += particleData.velocity.y;
-					particlePositions[ i * 3 + 2 ] += particleData.velocity.z;
-
-					if ( particlePositions[ i * 3 + 1 ] < - rHalf || particlePositions[ i * 3 + 1 ] > rHalf )
-						particleData.velocity.y = - particleData.velocity.y;
-
-					if ( particlePositions[ i * 3 ] < - rHalf || particlePositions[ i * 3 ] > rHalf )
-						particleData.velocity.x = - particleData.velocity.x;
-
-					if ( particlePositions[ i * 3 + 2 ] < - rHalf || particlePositions[ i * 3 + 2 ] > rHalf )
-						particleData.velocity.z = - particleData.velocity.z;
-
-					if ( effectController.limitConnections && particleData.numConnections >= effectController.maxConnections )
-						continue;
-
-
-					for ( let j = i + 1; j < particleCount; j ++ ) {
-
-						var particleDataB = particlesData[ j ];
-						if ( effectController.limitConnections && particleDataB.numConnections >= effectController.maxConnections )
-							continue;
-
-						var dx = particlePositions[ i * 3 ] - particlePositions[ j * 3 ];
-						var dy = particlePositions[ i * 3 + 1 ] - particlePositions[ j * 3 + 1 ];
-						var dz = particlePositions[ i * 3 + 2 ] - particlePositions[ j * 3 + 2 ];
-						var dist = Math.sqrt( dx * dx + dy * dy + dz * dz );
-
-						if ( dist < effectController.minDistance ) {
-
-							particleData.numConnections ++;
-							particleDataB.numConnections ++;
-
-							var alpha = 1.0 - dist / effectController.minDistance;
-
-							positions[ vertexpos ++ ] = particlePositions[ i * 3 ];
-							positions[ vertexpos ++ ] = particlePositions[ i * 3 + 1 ];
-							positions[ vertexpos ++ ] = particlePositions[ i * 3 + 2 ];
-
-							positions[ vertexpos ++ ] = particlePositions[ j * 3 ];
-							positions[ vertexpos ++ ] = particlePositions[ j * 3 + 1 ];
-							positions[ vertexpos ++ ] = particlePositions[ j * 3 + 2 ];
-
-							colors[ colorpos ++ ] = alpha;
-							colors[ colorpos ++ ] = alpha;
-							colors[ colorpos ++ ] = alpha;
-
-							colors[ colorpos ++ ] = alpha;
-							colors[ colorpos ++ ] = alpha;
-							colors[ colorpos ++ ] = alpha;
-
-							numConnected ++;
-
-						}
-
-					}
-
-				}
-
-
-				linesMesh.geometry.setDrawRange( 0, numConnected * 2 );
-				linesMesh.geometry.attributes.position.needsUpdate = true;
-				linesMesh.geometry.attributes.color.needsUpdate = true;
-
-				pointCloud.geometry.attributes.position.needsUpdate = true;
-
-				render();
-
-			}
-
-			function render() {
-
-				var time = Date.now() * 0.001;
-
-				group.rotation.y = time * 0.5;
-
-
-			}
 		</script>
 <py-script>
 from pyodide import create_proxy, to_js
 from js import window
-from js import Math
+from js import Math, Date
 from js import THREE
 from js import performance
 from pyodide import to_js
 from js import Object, Float32Array
-from js import init, animate, render
-from js import group, container, camera, scene, renderer, obc, positions, colors, particles, pointCloud, particlePositions, linesMesh
 
 particlesData = [];
 maxParticleCount = 1000;
 particleCount = 500;
 r = 800;
 rHalf = r / 2;
+
+effectController = {
+	"showDots": True,
+	"showLines": True,
+	"minDistance": 150,
+	"limitConnections": False,
+	"maxConnections": 20,
+	"particleCount": 500
+}
+
+def render():
+	time = Date.now() * 0.001;
+	group.rotation.y = time * 0.5;
 
 container = document.getElementById( 'container' );
 
@@ -223,7 +85,119 @@ while i < len(particlePositions):
 	particlesData.append( {"velocity": THREE.Vector3.new( - 1 + Math.random() * 2, - 1 + Math.random() * 2, - 1 + Math.random() * 2 ), "numConnections": 0} );
 	i += 1
 
-init(container, scene, group, camera, helper, segments, positions, colors, pMaterial, particles, particlePositions)
-</py-script>
+particles.setDrawRange( 0, particleCount );
+particles.setAttribute( 'position', THREE.BufferAttribute.new( particlePositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
+pointCloud = THREE.Points.new( particles, pMaterial );
+group.add( pointCloud );
+
+geometry = THREE.BufferGeometry.new()
+
+geometry.setAttribute( 'position', THREE.BufferAttribute.new( positions, 3 ).setUsage( THREE.DynamicDrawUsage ) )
+geometry.setAttribute( 'color', THREE.BufferAttribute.new( colors, 3 ).setUsage( THREE.DynamicDrawUsage ) )
+
+geometry.computeBoundingSphere();
+
+geometry.setDrawRange( 0, 0 );
+
+material_perms = {"vertexColors": True,"blending": THREE.AdditiveBlending,"transparent": True}
+material_perms = Object.fromEntries(to_js(material_perms))
+
+material = THREE.LineBasicMaterial.new(material_perms);
+
+linesMesh = THREE.LineSegments.new( geometry, material );
+group.add( linesMesh )
+
+renderer = THREE.WebGLRenderer.new( { "antialias": True } );
+renderer.setPixelRatio( window.devicePixelRatio );
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+container.appendChild( renderer.domElement );
+renderer.render( scene, camera );
+<!--
+function animate(effectController) {
+
+	let vertexpos = 0;
+	let colorpos = 0;
+	let numConnected = 0;
+
+	for ( let i = 0; i < particleCount; i ++ )
+		particlesData[ i ].numConnections = 0;
+
+	for ( let i = 0; i < particleCount; i ++ ) {
+
+		var particleData = particlesData[ i ];
+
+		particlePositions[ i * 3 ] += particleData.velocity.x;
+		particlePositions[ i * 3 + 1 ] += particleData.velocity.y;
+		particlePositions[ i * 3 + 2 ] += particleData.velocity.z;
+
+		if ( particlePositions[ i * 3 + 1 ] < - rHalf || particlePositions[ i * 3 + 1 ] > rHalf )
+			particleData.velocity.y = - particleData.velocity.y;
+
+		if ( particlePositions[ i * 3 ] < - rHalf || particlePositions[ i * 3 ] > rHalf )
+			particleData.velocity.x = - particleData.velocity.x;
+
+		if ( particlePositions[ i * 3 + 2 ] < - rHalf || particlePositions[ i * 3 + 2 ] > rHalf )
+			particleData.velocity.z = - particleData.velocity.z;
+
+		if ( effectController.limitConnections && particleData.numConnections >= effectController.maxConnections )
+			continue;
+
+
+		for ( let j = i + 1; j < particleCount; j ++ ) {
+
+			var particleDataB = particlesData[ j ];
+			if ( effectController.limitConnections && particleDataB.numConnections >= effectController.maxConnections )
+				continue;
+
+			var dx = particlePositions[ i * 3 ] - particlePositions[ j * 3 ];
+			var dy = particlePositions[ i * 3 + 1 ] - particlePositions[ j * 3 + 1 ];
+			var dz = particlePositions[ i * 3 + 2 ] - particlePositions[ j * 3 + 2 ];
+			var dist = Math.sqrt( dx * dx + dy * dy + dz * dz );
+
+			if ( dist < effectController.minDistance ) {
+
+				particleData.numConnections ++;
+				particleDataB.numConnections ++;
+
+				var alpha = 1.0 - dist / effectController.minDistance;
+
+				positions[ vertexpos ++ ] = particlePositions[ i * 3 ];
+				positions[ vertexpos ++ ] = particlePositions[ i * 3 + 1 ];
+				positions[ vertexpos ++ ] = particlePositions[ i * 3 + 2 ];
+
+				positions[ vertexpos ++ ] = particlePositions[ j * 3 ];
+				positions[ vertexpos ++ ] = particlePositions[ j * 3 + 1 ];
+				positions[ vertexpos ++ ] = particlePositions[ j * 3 + 2 ];
+
+				colors[ colorpos ++ ] = alpha;
+				colors[ colorpos ++ ] = alpha;
+				colors[ colorpos ++ ] = alpha;
+
+				colors[ colorpos ++ ] = alpha;
+				colors[ colorpos ++ ] = alpha;
+				colors[ colorpos ++ ] = alpha;
+
+				numConnected ++;
+
+			}
+
+		}
+
+	}
+
+
+	linesMesh.geometry.setDrawRange( 0, numConnected * 2 );
+	linesMesh.geometry.attributes.position.needsUpdate = true;
+	linesMesh.geometry.attributes.color.needsUpdate = true;
+
+	pointCloud.geometry.attributes.position.needsUpdate = true;
+
+	render();
+
+}
+
+--></py-script>
 	</body>
 </html>
