@@ -41,3 +41,8 @@ To contribute:
 ## Governance
 
 The [PyScript organization governance](https://github.com/pyscript/governance) is documented in a separate repository.
+
+## For more information
+
+* [home page](https://pyscript.net/)
+* [PyScript on Nucleus](https://anaconda.cloud/s/pyscript)
